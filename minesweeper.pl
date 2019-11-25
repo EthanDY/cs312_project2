@@ -66,7 +66,32 @@ generateBoard([H|T], Row, S) :-
     NRow is Row + 1,
     generateBoard(T, NRow, S4),
     string_concat(S3, S4, S).
+
+% generateColumnCoord([GridRows], Column, String)
+generateColumnCoord([], _, "").
+generateColumnCoord([H|T], 0, S) :-
+    generateColumnCoord([H|T], 1, NS),
+    string_concat("   0", NS, S).
+generateColumnCoord([H|T], Col, S) :-
+    length(H, L), Col < L, L < 10,
+    number_string(Col, ColS),
+    string_concat("  ", ColS, SS),
+    NCol is Col + 1,
+    generateColumnCoord([H|T], NCol, NS),
+    string_concat(SS, NS, S).
+generateColumnCoord([H|T], Col, S) :-
+    length(H, L), Col < L, L >= 10,
+    number_string(Col, ColS),
+    string_concat(" ", ColS, SS),
+    NCol is Col + 1,
+    generateColumnCoord([H|T], NCol, NS),
+    string_concat(SS, NS, S).
+generateColumnCoord([H|_], Col, "\n") :-
+    length(H, L), L = Col.
+
 printTest :-
     buildBoard(0,0,4, 4,[(0,0), (1,1),(2,2),(3,3)], G),
+    generateColumnCoord(G, 0, Cs),
     generateBoard(G, 0, S),
+    write(Cs),
     write(S).
