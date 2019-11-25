@@ -1,6 +1,33 @@
 firTup((X,_), X).       % First element in the tuple
 secTup((_,X), X).       % Second element in the tuple
 
+% mytake(N_elements, List, New_List)
+mytake(0, _, []).
+mytake(N, [H|T], R) :-
+    append([H], R1, R),
+    NN is N-1,
+    mytake(NN, T, R1).
+
+% allPairs(row_indexes, col_indexes, Pairs)
+allPairs([], _, []).
+allPairs([H|T], L, P) :-
+    allPairsHelper(H, L, P1),
+    append(P1, P2, P),
+    allPairs(T, L, P2).
+
+allPairsHelper(_, [], []).
+allPairsHelper(A, [H|T], P) :- 
+    append([(A,H)], P1, P),
+    allPairsHelper(A, T, P1).
+
+% minesPositions(Width, Length, Num, Positions)
+minesPositions(W, L, N, P) :-
+    NW is W-1, NL is L-1,
+    numlist(0, NW, WL), numlist(0, NL, LL),
+    allPairs(WL, LL, P1),
+    random_permutation(P1, NP),
+    mytake(N, NP, P).
+
 % Grid(location, mined, reached, reachedA, reachedB, flagged, flaggedA, flaggedB, num)
 % initRow(row, column, length, [mines_locations], [grids_of_this_row])
 initRow(_, Col, Col, _, []).
@@ -73,7 +100,7 @@ generateColumnCoord([H|T], 0, S) :-
     generateColumnCoord([H|T], 1, NS),
     string_concat("   0", NS, S).
 generateColumnCoord([H|T], Col, S) :-
-    length(H, L), Col < L, L < 10,
+    length(H, L), Col < L, L < 10, Col \= 0,
     number_string(Col, ColS),
     string_concat("  ", ColS, SS),
     NCol is Col + 1,
@@ -90,7 +117,8 @@ generateColumnCoord([H|_], Col, "\n") :-
     length(H, L), L = Col.
 
 printTest :-
-    buildBoard(0,0,4, 4,[(0,0), (1,1),(2,2),(3,3)], G),
+    minesPositions(4,4,4, P),
+    buildBoard(0,0,4, 4, P, G),
     generateColumnCoord(G, 0, Cs),
     generateBoard(G, 0, S),
     write(Cs),
