@@ -100,14 +100,14 @@ generateColumnCoord([H|T], 0, S) :-
     generateColumnCoord([H|T], 1, NS),
     string_concat("   0", NS, S).
 generateColumnCoord([H|T], Col, S) :-
-    length(H, L), Col < L, L < 10, Col \= 0,
+    length(H, L), Col < L, Col < 10, Col \= 0,
     number_string(Col, ColS),
     string_concat("  ", ColS, SS),
     NCol is Col + 1,
     generateColumnCoord([H|T], NCol, NS),
     string_concat(SS, NS, S).
 generateColumnCoord([H|T], Col, S) :-
-    length(H, L), Col < L, L >= 10,
+    length(H, L), Col < L, Col >= 10,
     number_string(Col, ColS),
     string_concat(" ", ColS, SS),
     NCol is Col + 1,
@@ -116,10 +116,36 @@ generateColumnCoord([H|T], Col, S) :-
 generateColumnCoord([H|_], Col, "\n") :-
     length(H, L), L = Col.
 
-printTest :-
-    minesPositions(4,4,4, P),
-    buildBoard(0,0,4, 4, P, G),
-    generateColumnCoord(G, 0, Cs),
-    generateBoard(G, 0, S),
-    write(Cs),
-    write(S).
+printBoard(Board) :-
+    generateColumnCoord(Board, 0, ColCords),
+    generateBoard(Board, 0, BoardS),
+    write(ColCords),
+    write(BoardS).
+
+% getValidInput(X, Lower, Upper): Get an input X from user, and test if it is in [Lower, Upper]
+getValidInput(X, Lower, Upper) :-
+    read(X), integer(X), X >= Lower, X =< Upper.
+
+getValidInput(X, Lower, Upper) :-
+    write("Please enter a valid input:\n"),
+    getValidInput(X, Lower, Upper).
+
+sizeDifficulty(5, 5, 0).
+sizeDifficulty(9, 9, 1).
+sizeDifficulty(18, 18, 2).
+sizeDifficulty(24,24, 3).
+
+numMinesDiff(2, 0).
+numMinesDiff(10, 1).
+numMinesDiff(40, 2).
+numMinesDiff(99, 3).
+
+startSingleGame :-
+    write("Please choose difficulty:"), nl,
+    write("0. Super Easy 1. Easy   2. Medium   3. Difficult"), nl,
+    getValidInput(Difficult, 0, 3),
+    sizeDifficulty(W, L, Difficult),
+    numMinesDiff(N,Difficult),
+    minesPositions(W, L, N, Positions),
+    buildBoard(0, 0, W, L, Positions, Board),
+    printBoard(Board).
