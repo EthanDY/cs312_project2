@@ -54,25 +54,25 @@ buildBoard(Row, Col, Wid, Len, Mines, Grids) :-
 generateRow([], "").
 generateRow([grid(_, true, _, _, _, _, _, _, _)|T], S) :-
     generateRow(T, NS),
-    string_concat("[X]", NS, S).
+    string_concat("[X]", NS, S), !.
 generateRow([grid(_, _, _, _, _, true, _, _, _)|T], S) :-
     generateRow(T, NS),
-    string_concat("[F]", NS, S).
+    string_concat("[F]", NS, S), !.
 generateRow([grid(_, _, true, true, _, _, _, _, 0)|T], S) :-
     generateRow(T, NS),
-    string_concat("[A]", NS, S).
+    string_concat("[A]", NS, S), !.
 generateRow([grid(_, _, true, _, true, _, _, _, 0)|T], S) :-
     generateRow(T, NS),
-    string_concat("[A]", NS, S).
+    string_concat("[A]", NS, S), !.
 generateRow([grid(_, _, true, _, _, _, _, _, Num)|T], S) :-
     Num \= 0, generateRow(T, NS),
     number_string(Num, NumS),
     string_concat("[", NumS, NumSS),
     string_concat(NumSS, "]", NumSSS),
-    string_concat(NumSSS, NS, S).
+    string_concat(NumSSS, NS, S), !.
 generateRow([grid(_, false, _, _, _, _, _, _, _)|T], S) :-
     generateRow(T, NS),
-    string_concat("[|]", NS, S).
+    string_concat("[|]", NS, S), !.
 
 % generateBoard([GridRows], row_no, string)
 generateBoard([], _, "").
@@ -116,6 +116,60 @@ generateColumnCoord([H|T], Col, S) :-
 generateColumnCoord([H|_], Col, "\n") :-
     length(H, L), L = Col.
 
+% Return the grid with given coordinate
+findGrid(Row, Column, [H|T], Grid) :-
+    Row >= 0, length([H|T], L),
+    NL is L - 1,
+    Row =< NL,
+    Column >= 0, length(H, W),
+    NW is W - 1,
+    Column =< NW,
+    nth0(Row, [H|T], BoardRow),
+    nth0(Column, BoardRow, Grid).
+
+% Grid(location, mined, reached, reachedA, reachedB, flagged, flaggedA, flaggedB, num)
+% mined(Grid, X) returns true if Grid has mine on it
+mined(grid(_, true, _, _, _, _, _, _, _), 1).
+mined(grid(_, false, _, _, _, _, _, _, _), 0).
+location(grid((X, Y), _, _, _, _, _, _, _, _), X, Y).
+
+% Check if the grid with current coordinate is mined, if so return 1.
+mineToOne(Row, Column, Board, X) :-
+    findGrid(Row, Column, Board, Grid),
+    mined(Grid, X), !.
+mineToOne(_, _, _, 0).
+
+% Get the number of mines around the grid
+getGridNum(Grid, Board, Num) :-
+    location(Grid, X, Y), X1 is X - 1, Y1 is Y - 1, X2 is X + 1, Y2 is Y + 1,
+    mineToOne(X1, Y1, Board, N1), mineToOne(X1, Y, Board, N2), mineToOne(X1, Y2, Board, N3),
+    mineToOne(X, Y1, Board, N4), mineToOne(X, Y2, Board, N5),
+    mineToOne(X2, Y1, Board, N6), mineToOne(X2, Y, Board, N7), mineToOne(X2, Y2, Board, N8),
+    Num is N1 + N2 + N3 + N4 + N5 + N6 + N7 + N8.
+
+newGridWithNumChanged(grid(A, B, C, D, E, F, G, H, _), grid(A, B, C, D, E, F, G, H, J), J).
+
+% Update the column of a row's grids to show the number of mines around it
+updateGridNumColumn([], _, []).
+updateGridNumColumn([H|T], Board, NCol) :-
+    getGridNum(H, Board, Num),
+    newGridWithNumChanged(H, NGrid, Num),
+    updateGridNumColumn(T, Board, NGrids),
+    append([NGrid], NGrids, NCol).
+
+% Get a new board with all grids' num updated
+updateGridNum([], _, []).
+updateGridNum([H|T], Board, NBoard) :-
+    updateGridNumColumn(H, Board, NRow),
+    updateGridNum(T, Board, NRows),
+    append([NRow], NRows, NBoard).
+
+% TODO: DELETE!!!!!
+testFindGrid :-
+    buildBoard(0, 0, 4, 4, [(0,0), (1,1), (2,2), (3,3)], Grids),
+    updateGridNum(Grids, Grids, X),
+    printBoard(X).
+
 printBoard(Board) :-
     generateColumnCoord(Board, 0, ColCords),
     generateBoard(Board, 0, BoardS),
@@ -148,4 +202,10 @@ startSingleGame :-
     numMinesDiff(N,Difficult),
     minesPositions(W, L, N, Positions),
     buildBoard(0, 0, W, L, Positions, Board),
+    singleGame(Board).
+
+singleGame(Board) :-
     printBoard(Board).
+
+main :-
+    startSingleGame.
