@@ -50,7 +50,6 @@ buildBoard(Row, Col, Wid, Len, Mines, Grids) :-
 
 % Grid(location, mined, reached, reachedA, reachedB, flagged, flaggedA, flaggedB, num)
 % generateRow([gird], string)
-
 generateRow([], "").
 generateRow([grid(_, true, _, _, _, _, _, _, _)|T], S) :-
     generateRow(T, NS),
@@ -73,6 +72,24 @@ generateRow([grid(_, _, true, _, _, _, _, _, Num)|T], S) :-
 generateRow([grid(_, false, _, _, _, _, _, _, _)|T], S) :-
     generateRow(T, NS),
     string_concat("[|]", NS, S), !.
+
+% update the row of game board after clicking
+% Grid(location, mined, reached, reachedA, reachedB, flagged, flaggedA, flaggedB, num)
+clickRow(_, [], []).
+clickRow(Col, [grid((Row,Col), A, _, C, D, E, F, G, H)|T], GridRow) :-
+    append([grid((Row,Col), A, true, C, D, E, F, G, H)], T, GridRow), !.
+clickRow(Col, [H|T], GridRow) :-
+    clickRow(Col, T, Grids),
+    append([H], Grids, GridRow), !.
+% Click a grid and update the whole game board (Single player mode)
+click(_, _, [], []).
+click(0, Col, [H|T], Board) :-
+    clickRow(Col, H, NRow),
+    append([NRow], T, Board),!.
+click(Row, Col, [H|T], Board) :-
+    NRow is Row - 1,
+    click(NRow, Col, T, Rows),
+    append([H], Rows, Board), !.
 
 % generateBoard([GridRows], row_no, string)
 generateBoard([], _, "").
@@ -167,7 +184,8 @@ updateGridNum([H|T], Board, NBoard) :-
 % TODO: DELETE!!!!!
 testFindGrid :-
     buildBoard(0, 0, 4, 4, [(0,0), (1,1), (2,2), (3,3)], Grids),
-    updateGridNum(Grids, Grids, X),
+    updateGridNum(Grids, Grids, Board),
+    click(0, 1, Board, X),
     printBoard(X).
 
 printBoard(Board) :-
