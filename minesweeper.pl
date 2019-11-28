@@ -81,7 +81,7 @@ clickRow(Col, [grid((Row,Col), A, _, C, D, E, F, G, H)|T], GridRow) :-
 clickRow(Col, [H|T], GridRow) :-
     clickRow(Col, T, Grids),
     append([H], Grids, GridRow), !.
-% Click a grid and update the whole game board (Single player mode)
+% Click a grid and update the whole game board
 click(_, _, [], []).
 click(0, Col, [H|T], Board) :-
     clickRow(Col, H, NRow),
@@ -90,6 +90,108 @@ click(Row, Col, [H|T], Board) :-
     NRow is Row - 1,
     click(NRow, Col, T, Rows),
     append([H], Rows, Board), !.
+
+% Return a list of indexes of grid that doesn't have mines or not flagged above the grid on row column
+expandUp(_, _, [], []).
+expandUp(Row, _, _, []) :-
+    Row < 0, !.
+expandUp(Row, Col, Board, []) :-
+    findGrid(Row, Col, Board, Grid),
+    mined(Grid, 1), !.
+expandUp(Row, Col, Board, []) :-
+    findGrid(Row, Col, Board, Grid),
+    property(reached, Grid), !.
+expandUp(Row, Col, Board, [(Row, Col)]) :-
+    findGrid(Row, Col, Board, Grid),
+    property(num, Grid, Num),
+    Num \= 0, !.
+expandUp(Row, Col, Board, [(Row, Col)]) :-
+    findGrid(Row, Col, Board, Grid),
+    property(flagged, Grid), !.
+expandUp(Row, Col, Board, List) :-
+    NRow is Row - 1,
+    expandUp(NRow, Col, Board, NList),
+    append([(Row, Col)], NList, List), !.
+
+% Return a list of indexes of grid that doesn't have mines or not flagged beneth the grid on row column
+expandDown(_, _, [], []).
+expandDown(Row, _, Board, []) :-
+    length(Board, L),
+    Row >= L, !.
+expandDown(Row, Col, Board, []) :-
+    findGrid(Row, Col, Board, Grid),
+    mined(Grid, 1), !.
+expandDown(Row, Col, Board, []) :-
+    findGrid(Row, Col, Board, Grid),
+    property(reached, Grid), !.
+expandDown(Row, Col, Board, [(Row, Col)]) :-
+    findGrid(Row, Col, Board, Grid),
+    property(num, Grid, Num),
+    Num \= 0, !.
+expandDown(Row, Col, Board, [(Row, Col)]) :-
+    findGrid(Row, Col, Board, Grid),
+    property(flagged, Grid), !.
+expandDown(Row, Col, Board, List) :-
+    NRow is Row + 1,
+    expandDown(NRow, Col, Board, NList),
+    append([(Row, Col)], NList, List), !.
+
+expandLeft(_, _, [], []).
+expandLeft(_, Col, _, []) :-
+    Col < 0, !.
+expandLeft(Row, Col, Board, []) :-
+    findGrid(Row, Col, Board, Grid),
+    mined(Grid, 1), !.
+expandLeft(Row, Col, Board, []) :-
+    findGrid(Row, Col, Board, Grid),
+    property(reached, Grid), !.
+expandLeft(Row, Col, Board, [(Row, Col)]) :-
+    findGrid(Row, Col, Board, Grid),
+    property(num, Grid, Num),
+    Num \= 0, !.
+expandLeft(Row, Col, Board, [(Row, Col)]) :-
+    findGrid(Row, Col, Board, Grid),
+    property(flagged, Grid), !.
+expandLeft(Row, Col, Board, List) :-
+    NCol is Col - 1,
+    expandLeft(Row, NCol, Board, NList),
+    append([(Row, Col)], NList, List), !.
+
+expandRight(_, _, [], []).
+expandRight(_, Col, [H|_], []) :-
+    length(H, L),
+    Col >= L, !.
+expandRight(Row, Col, Board, []) :-
+    findGrid(Row, Col, Board, Grid),
+    mined(Grid, 1), !.
+expandRight(Row, Col, Board, []) :-
+    findGrid(Row, Col, Board, Grid),
+    property(reached, Grid), !.
+expandRight(Row, Col, Board, [(Row, Col)]) :-
+    findGrid(Row, Col, Board, Grid),
+    property(num, Grid, Num),
+    Num \= 0, !.
+expandRight(Row, Col, Board, [(Row, Col)]) :-
+    findGrid(Row, Col, Board, Grid),
+    property(flagged, Grid), !.
+expandRight(Row, Col, Board, List) :-
+    NCol is Col + 1,
+    expandRight(Row, NCol, Board, NList),
+    append([(Row, Col)], NList, List), !.
+
+expandUDRL(Row, Col, Board, List) :- 
+    expandUp(Row,Col,Board,L1), expandDown(Row,Col,Board,L2),
+    expandLeft(Row,Col,Board,L3), expandRight(Row,Col,Board,L4),
+    append(L1, L2, L5), append(L5, L3, L6),
+    append(L6, L4, L7), sort(L7,List).
+
+% Return a list of all grids around the grid on row, column that doesn't have mines
+expandHelper([], _, []).
+expandHelper([(X,Y)|T], Board, Lst) :-
+    expandUDRL(X, Y, Board, NLst),
+    expandHelper(T, Board, NNLst),
+    append(NLst, NNLst, L1),
+    sort(L1, Lst), !.
 
 % generateBoard([GridRows], row_no, string)
 generateBoard([], _, "").
@@ -148,7 +250,10 @@ findGrid(Row, Column, [H|T], Grid) :-
 % mined(Grid, X) returns true if Grid has mine on it
 mined(grid(_, true, _, _, _, _, _, _, _), 1).
 mined(grid(_, false, _, _, _, _, _, _, _), 0).
-location(grid((X, Y), _, _, _, _, _, _, _, _), X, Y).
+property(location, grid((X, Y), _, _, _, _, _, _, _, _), X, Y).
+property(reached, grid(_, _, true, _, _, _, _, _, _)).
+property(flagged, grid(_, _, _, _, _, true, _, _, _)).
+property(num, grid(_, _, _, _, _, _, _, _, Num), Num).
 
 % Check if the grid with current coordinate is mined, if so return 1.
 mineToOne(Row, Column, Board, X) :-
@@ -158,7 +263,7 @@ mineToOne(_, _, _, 0).
 
 % Get the number of mines around the grid
 getGridNum(Grid, Board, Num) :-
-    location(Grid, X, Y), X1 is X - 1, Y1 is Y - 1, X2 is X + 1, Y2 is Y + 1,
+    property(location, Grid, X, Y), X1 is X - 1, Y1 is Y - 1, X2 is X + 1, Y2 is Y + 1,
     mineToOne(X1, Y1, Board, N1), mineToOne(X1, Y, Board, N2), mineToOne(X1, Y2, Board, N3),
     mineToOne(X, Y1, Board, N4), mineToOne(X, Y2, Board, N5),
     mineToOne(X2, Y1, Board, N6), mineToOne(X2, Y, Board, N7), mineToOne(X2, Y2, Board, N8),
@@ -182,11 +287,12 @@ updateGridNum([H|T], Board, NBoard) :-
     append([NRow], NRows, NBoard).
 
 % TODO: DELETE!!!!!
-testFindGrid :-
-    buildBoard(0, 0, 4, 4, [(0,0), (1,1), (2,2), (3,3)], Grids),
+testFindGrid(X) :-
+    buildBoard(0, 0, 4, 4, [(0,0), (1,1), (3,3)], Grids),
     updateGridNum(Grids, Grids, Board),
-    click(0, 1, Board, X),
-    printBoard(X).
+    printBoard(Board),
+    expandHelper([(3,1), (0,3)],Board, X).
+    %printBoard(X).
 
 printBoard(Board) :-
     generateColumnCoord(Board, 0, ColCords),
