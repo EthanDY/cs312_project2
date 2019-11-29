@@ -69,9 +69,12 @@ generateRow([grid(_, _, true, _, _, _, _, _, Num)|T], S) :-
     string_concat("[", NumS, NumSS),
     string_concat(NumSS, "]", NumSSS),
     string_concat(NumSSS, NS, S), !.
-generateRow([grid(_, false, _, _, _, _, _, _, _)|T], S) :-
+generateRow([grid(_, false, false, _, _, _, _, _, _)|T], S) :-
     generateRow(T, NS),
     string_concat("[|]", NS, S), !.
+generateRow([grid(_, _, true, _, _, _, _, _, 0)|T], S) :-
+    generateRow(T, NS),
+    string_concat("[ ]", NS, S), !.
 
 % update the row of game board after clicking
 % Grid(location, mined, reached, reachedA, reachedB, flagged, flaggedA, flaggedB, num)
@@ -193,6 +196,24 @@ expandHelper([(X,Y)|T], Board, Lst) :-
     append(NLst, NNLst, L1),
     sort(L1, Lst), !.
 
+expand(_, [], _, []).
+expand(_, [(X,Y)|T], Board, [(X,Y)|T]) :-
+    findGrid(X, Y, Board, Grid),
+    property(mined, Grid), !.
+expand(Lst, [(X,Y)|T], Board, NewLst) :-
+    expandHelper([(X,Y)|T],Board, ToExpand1),
+    sort(ToExpand1, ToExpand),
+    append([(X, Y)], Lst, Expanded1),
+    sort(Expanded1, Expanded),
+    subtract(ToExpand, Expanded, NL),
+    expand(Expanded, NL, Board, L1),
+    append([(X, Y)], L1, NewLst).
+
+expandClick([], Board, Board).
+expandClick([(X, Y)|T], Board, NBoard) :-
+    click(X, Y, Board, Tmp),
+    expandClick(T, Tmp, NBoard).
+
 % generateBoard([GridRows], row_no, string)
 generateBoard([], _, "").
 generateBoard([H|T], Row, S) :-
@@ -287,12 +308,13 @@ updateGridNum([H|T], Board, NBoard) :-
     append([NRow], NRows, NBoard).
 
 % TODO: DELETE!!!!!
-testFindGrid(X) :-
-    buildBoard(0, 0, 4, 4, [(0,0), (1,1), (3,3)], Grids),
+testPrintBoard :-
+    buildBoard(0, 0, 4, 4, [(0,0), (1,1)], Grids),
     updateGridNum(Grids, Grids, Board),
     printBoard(Board),
-    expandHelper([(3,1), (0,3)],Board, X).
-    %printBoard(X).
+    expand([],[(3,1)],Board, B),
+    expandClick(B, Board, NBoard),
+    printBoard(NBoard).
 
 printBoard(Board) :-
     generateColumnCoord(Board, 0, ColCords),
