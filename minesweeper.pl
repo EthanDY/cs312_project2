@@ -49,31 +49,34 @@ buildBoard(Row, Col, Wid, Len, Mines, Grids) :-
     buildBoard(NRow, Col, Wid, Len, Mines, GridRows).
 
 % Grid(location, mined, reached, reachedA, reachedB, flagged, flaggedA, flaggedB, num)
-% generateRow([gird], string)
-generateRow([], "").
-generateRow([grid(_, true, _, _, _, _, _, _, _)|T], S) :-
-    generateRow(T, NS),
+% generateRow([gird], string, hide/show)
+generateRow([], "", _).
+generateRow([grid(_, true, _, _, _, _, _, _, _)|T], S, show) :-
+    generateRow(T, NS, show),
     string_concat("[X]", NS, S), !.
-generateRow([grid(_, _, _, _, _, true, _, _, _)|T], S) :-
-    generateRow(T, NS),
+generateRow([grid(_, true, _, _, _, _, _, _, _)|T], S, hide) :-
+    generateRow(T, NS, hide),
+    string_concat("[|]", NS, S), !.
+generateRow([grid(_, _, _, _, _, true, _, _, _)|T], S, O) :-
+    generateRow(T, NS, O),
     string_concat("[F]", NS, S), !.
-generateRow([grid(_, _, true, true, _, _, _, _, 0)|T], S) :-
-    generateRow(T, NS),
+generateRow([grid(_, _, true, true, _, _, _, _, 0)|T], S, O) :-
+    generateRow(T, NS, O),
     string_concat("[A]", NS, S), !.
-generateRow([grid(_, _, true, _, true, _, _, _, 0)|T], S) :-
-    generateRow(T, NS),
+generateRow([grid(_, _, true, _, true, _, _, _, 0)|T], S, O) :-
+    generateRow(T, NS, O),
     string_concat("[A]", NS, S), !.
-generateRow([grid(_, _, true, _, _, _, _, _, Num)|T], S) :-
-    Num \= 0, generateRow(T, NS),
+generateRow([grid(_, _, true, _, _, _, _, _, Num)|T], S, O) :-
+    Num \= 0,     generateRow(T, NS, O),
     number_string(Num, NumS),
     string_concat("[", NumS, NumSS),
     string_concat(NumSS, "]", NumSSS),
     string_concat(NumSSS, NS, S), !.
-generateRow([grid(_, false, false, _, _, _, _, _, _)|T], S) :-
-    generateRow(T, NS),
+generateRow([grid(_, false, false, _, _, _, _, _, _)|T], S, O) :-
+    generateRow(T, NS, O),
     string_concat("[|]", NS, S), !.
-generateRow([grid(_, _, true, _, _, _, _, _, 0)|T], S) :-
-    generateRow(T, NS),
+generateRow([grid(_, _, true, _, _, _, _, _, 0)|T], S, O) :-
+    generateRow(T, NS, O),
     string_concat("[ ]", NS, S), !.
 
 % update the row of game board after clicking
@@ -215,23 +218,23 @@ expandClick([(X, Y)|T], Board, NBoard) :-
     expandClick(T, Tmp, NBoard).
 
 % generateBoard([GridRows], row_no, string)
-generateBoard([], _, "").
-generateBoard([H|T], Row, S) :-
+generateBoard([], _, "", _).
+generateBoard([H|T], Row, S, O) :-
     Row < 10, number_string(Row, RowS),
     string_concat(RowS, " ", S1),
-    generateRow(H, S2),
+    generateRow(H, S2, O),
     string_concat(S1, S2, S3),
     string_concat(S3, "\n", S4),
     NRow is Row + 1,
-    generateBoard(T, NRow, S5),
+    generateBoard(T, NRow, S5, O),
     string_concat(S4, S5, S).
-generateBoard([H|T], Row, S) :-
+generateBoard([H|T], Row, S, O) :-
     Row >= 10, number_string(Row, RowS),
-    generateRow(H, S1),
+    generateRow(H, S1, O),
     string_concat(RowS, S1, S2),
     string_concat(S2, "\n", S3),
     NRow is Row + 1,
-    generateBoard(T, NRow, S4),
+    generateBoard(T, NRow, S4, O),
     string_concat(S3, S4, S).
 
 % generateColumnCoord([GridRows], Column, String)
@@ -316,14 +319,14 @@ updateGridNum([H|T], Board, NBoard) :-
 testPrintBoard :-
     buildBoard(0, 0, 4, 4, [(0,0), (1,1)], Grids),
     updateGridNum(Grids, Grids, Board),
-    printBoard(Board),
+    printBoard(Board, hide),
     expand([],[(3,1)],Board, B),
     expandClick(B, Board, NBoard),
-    printBoard(NBoard).
+    printBoard(NBoard, show).
 
-printBoard(Board) :-
+printBoard(Board, O) :-
     generateColumnCoord(Board, 0, ColCords),
-    generateBoard(Board, 0, BoardS),
+    generateBoard(Board, 0, BoardS, O),
     write(ColCords),
     write(BoardS).
 
@@ -332,26 +335,9 @@ getValidInput(X, Lower, Upper) :-
     read(X), integer(X), X >= Lower, X =< Upper.
 
 getValidInput(X, Lower, Upper) :-
+    X \= "Q", X \= "q",
     write("Please enter a valid input:\n"),
     getValidInput(X, Lower, Upper).
-
-getValidXCoord(X, Difficult):-
-    write("X coord input: "), nl,
-    read(X),
-    sizeDifficulty(Size, Size, Difficult),
-    X >= 0, X =< Size.
-getValidXCoord(X, Difficult):-
-    write("Please enter a valid X coord:\n"),
-    getValidXCoord(X, Difficult).
-
-getValidYCoord(Y, Difficult):-
-    write("Y coord input: "), nl,
-    read(Y),
-    sizeDifficulty(Size, Size, Difficult),
-    Y >= 0, Y =< Size.
-getValidYCoord(Y, Difficult):-
-    write("Please enter a valid Y coord:\n"),
-    getValidYCoord(Y, Difficult).
 
 sizeDifficulty(5, 5, 0).
 sizeDifficulty(9, 9, 1).
@@ -364,7 +350,7 @@ numMinesDiff(40, 2).
 numMinesDiff(99, 3).
 
 startSingleGame :-
-    write("Please choose difficulty:"), nl,
+    write("Please choose difficulty: (Q to quit)"), nl,
     write("0. Super Easy 1. Easy   2. Medium   3. Difficult"), nl,
     getValidInput(Difficult, 0, 3),
     sizeDifficulty(W, L, Difficult),
@@ -375,9 +361,13 @@ startSingleGame :-
 
 singleGame(Board, Difficult) :-
     updateGridNum(Board, Board, NBoard),
-    printBoard(NBoard),
-    getValidXCoord(X, Difficult),
-    getValidYCoord(Y, Difficult),
+    printBoard(NBoard, show),           % show means show mines, hide will hide mines
+    sizeDifficulty(W, L, Difficult),
+    NW is W - 1, NL is L - 1,
+    write("X coord input: (Q to quit)"), nl,
+    getValidInput(X, 0, NW),
+    write("Y corrd input: (Q to quit)"), nl,
+    getValidInput(Y, 0, NL),
     expand([],[(X,Y)],NBoard, B),
     expandClick(B, NBoard, NNBoard),
     singleGame(NNBoard, Difficult).
