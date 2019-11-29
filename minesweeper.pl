@@ -94,7 +94,11 @@ click(Row, Col, [H|T], Board) :-
     click(NRow, Col, T, Rows),
     append([H], Rows, Board), !.
 
+<<<<<<< HEAD
 % Return a list of indexes of grid that doesnt have mines or not flagged above the grid on row column
+=======
+% Return a list of indexes of grid that doesn't have mines or not flagged above the grid on row column
+>>>>>>> 8287910785f3561bde749553c695cf4e26296e44
 expandUp(_, _, [], []).
 expandUp(Row, _, _, []) :-
     Row < 0, !.
@@ -116,7 +120,11 @@ expandUp(Row, Col, Board, List) :-
     expandUp(NRow, Col, Board, NList),
     append([(Row, Col)], NList, List), !.
 
+<<<<<<< HEAD
 % Return a list of indexes of grid that doesnt have mines or not flagged beneth the grid on row column
+=======
+% Return a list of indexes of grid that doesn't have mines or not flagged beneth the grid on row column
+>>>>>>> 8287910785f3561bde749553c695cf4e26296e44
 expandDown(_, _, [], []).
 expandDown(Row, _, Board, []) :-
     length(Board, L),
@@ -188,7 +196,11 @@ expandUDRL(Row, Col, Board, List) :-
     append(L1, L2, L5), append(L5, L3, L6),
     append(L6, L4, L7), sort(L7,List).
 
+<<<<<<< HEAD
 % Return a list of all grids around the grid on row, column that doesnt have mines
+=======
+% Return a list of all grids around the grid on row, column that doesn't have mines
+>>>>>>> 8287910785f3561bde749553c695cf4e26296e44
 expandHelper([], _, []).
 expandHelper([(X,Y)|T], Board, Lst) :-
     expandUDRL(X, Y, Board, NLst),
@@ -272,6 +284,7 @@ findGrid(Row, Column, [H|T], Grid) :-
 mined(grid(_, true, _, _, _, _, _, _, _), 1).
 mined(grid(_, false, _, _, _, _, _, _, _), 0).
 property(location, grid((X, Y), _, _, _, _, _, _, _, _), X, Y).
+<<<<<<< HEAD
 property(mined, grid(_, true, _, _, _, _, _, _, _)).
 property(reached, grid(_, _, true, _, _, _, _, _, _)).
 property(reachedA, grid(_, _, _, true, _, _, _, _, _)).
@@ -279,6 +292,10 @@ property(reachedB, grid(_, _, _, _, true, _, _, _, _)).
 property(flagged, grid(_, _, _, _, _, true, _, _, _)).
 property(flaggedA, grid(_, _, _, _, _, _, true, _, _)).
 property(flaggedB, grid(_, _, _, _, _, _, _, true, _)).
+=======
+property(reached, grid(_, _, true, _, _, _, _, _, _)).
+property(flagged, grid(_, _, _, _, _, true, _, _, _)).
+>>>>>>> 8287910785f3561bde749553c695cf4e26296e44
 property(num, grid(_, _, _, _, _, _, _, _, Num), Num).
 
 % Check if the grid with current coordinate is mined, if so return 1.
