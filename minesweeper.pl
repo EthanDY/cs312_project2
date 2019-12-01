@@ -350,6 +350,9 @@ numMinesDiff(40, 2).
 numMinesDiff(99, 3).
 
 startSingleGame :-
+    write("Please enter your name: (No need to type dot)"), nl,
+    read_name(Name),
+    write(Name), nl,
     write("Please choose difficulty: (Q to quit)"), nl,
     write("0. Super Easy 1. Easy   2. Medium   3. Difficult"), nl,
     getValidInput(Difficult, 0, 3),
@@ -359,14 +362,18 @@ startSingleGame :-
     buildBoard(0, 0, W, L, Positions, Board),
     singleGame(Board, Difficult).
 
+read_name(String) :-
+    current_input(Input),
+    read_string(Input, "\n", "\r", _, String).
+
 singleGame(Board, Difficult) :-
     updateGridNum(Board, Board, NBoard),
     printBoard(NBoard, show),           % show means show mines, hide will hide mines
     sizeDifficulty(W, L, Difficult),
     NW is W - 1, NL is L - 1,
-    write("X coord input: (Q to quit)"), nl,
+    write("Please choose a Row: (Q to quit)"), nl,
     getValidInput(X, 0, NW),
-    write("Y corrd input: (Q to quit)"), nl,
+    write("Please choose a Column: (Q to quit)"), nl,
     getValidInput(Y, 0, NL),
     expand([],[(X,Y)],NBoard, B),
     expandClick(B, NBoard, NNBoard),
