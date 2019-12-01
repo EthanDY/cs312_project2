@@ -383,3 +383,28 @@ singleGame(Board, Difficult) :-
 main :-
     startSingleGame.
 
+createFileIfNonExist :-
+    exists_file("SuperEasy.txt"),
+    exists_file("Easy.txt"),
+    exists_file("Medium.txt"),
+    exists_file("Difficult.txt"), !.
+createFileIfNonExist :-
+    not(exists_file("SuperEasy.txt")),
+    open("SuperEasy.txt",write,OS),
+    X = "",
+    write(OS,X).
+createFileIfNonExist :-
+    not(exists_file("Easy.txt")),
+    open("Easy.txt",write,OS),
+    X = "",
+    write(OS,X).
+createFileIfNonExist :-
+    not(exists_file("Medium.txt")),
+    open("Medium.txt",write,OS),
+    X = "",
+    write(OS,X).
+createFileIfNonExist :-
+    not(exists_file("Difficult.txt")),
+    open("Difficult.txt",write,OS),
+    X = "",
+    write(OS,X).
