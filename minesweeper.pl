@@ -332,7 +332,7 @@ printBoard(Board, O) :-
 
 % getValidInput(X, Lower, Upper): Get an input X from user, and test if it is in [Lower, Upper]
 getValidInput(X, Lower, Upper) :-
-    read(X), integer(X), X >= Lower, X =< Upper.
+    read(X), integer(X), X >= Lower, X =< Upper, !.
 
 getValidInput(X, Lower, Upper) :-
     X \= "Q", X \= "q",
@@ -349,9 +349,11 @@ numMinesDiff(10, 1).
 numMinesDiff(40, 2).
 numMinesDiff(99, 3).
 
+% Start the single game loop
 startSingleGame :-
     write("Please enter your name: (No need to type dot)"), nl,
-    read_name(Name),
+    read_string(user_input, "\n", "\r", _, _),
+    read_string(user_input, "\n", "\r", _, Name),
     write(Name), nl,
     write("Please choose difficulty: (Q to quit)"), nl,
     write("0. Super Easy 1. Easy   2. Medium   3. Difficult"), nl,
@@ -361,10 +363,6 @@ startSingleGame :-
     minesPositions(W, L, N, Positions),
     buildBoard(0, 0, W, L, Positions, Board),
     singleGame(Board, Difficult).
-
-read_name(String) :-
-    current_input(Input),
-    read_string(Input, "\n", "\r", _, String).
 
 singleGame(Board, Difficult) :-
     updateGridNum(Board, Board, NBoard),
@@ -379,32 +377,88 @@ singleGame(Board, Difficult) :-
     expandClick(B, NBoard, NNBoard),
     singleGame(NNBoard, Difficult).
 
+% Create ranking files if there are no such files.
+createFileIfNonExist(FileName) :-
+    not(exists_file(FileName)),
+    open(FileName,write,OS),
+    X = "",
+    write(OS,X),
+    close(OS), !.
+createFileIfNonExist(FileName) :-
+    exists_file(FileName).
+
+linesToRecords([], []).
+linesToRecords([H|T], Records) :-
+    split_string(H, " ","", Lst),
+    nth0(0, Lst, E1),
+    nth0(1, Lst, E2),
+    number_string(Time, E2),
+    append([(Time, E1)], NRecords, Records),
+    linesToRecords(T, NRecords).
+
+findSpaceNum(N, String) :-
+    Tmp is 9-N, Tmp > 0,
+    NN is N + 1,
+    findSpaceNum(NN, S),
+    string_concat(" ", S, String), !.
+findSpaceNum(_, "").
+
+createRank([], _, "").
+createRank([(Time, Name)|T], N, RankS) :-
+    number_string(N, NS), string_concat(NS, ". ", S1),
+    string_concat(S1, Name, S2),  string_length(Name, Length),
+    findSpaceNum(Length, Space), string_concat(S2, Space, S3),
+    number_string(Time, TimeS),
+    string_concat(S3, TimeS, S4), string_concat(S4, "s\n", S5),
+    NN is N + 1,
+    createRank(T, NN, S),
+    string_concat(S5, S, RankS).
+
+difficultFileAndTitle("SuperEasy", "Super Easy").
+difficultFileAndTitle(X, X).
+
+generateRanking(DifficultS) :-
+    string_concat(DifficultS, ".txt", File),
+    open(File, read, Str),
+    read_string(Str, "", "\r", _, X), !,
+    X = "",
+    difficultFileAndTitle(DifficultS, TitleS),
+    string_concat("  ", TitleS, Title),
+    write(Title), nl,
+    write("----------------"), nl,
+    write(""), nl,
+    close(Str), !.
+
+generateRanking(DifficultS) :-
+    string_concat(DifficultS, ".txt", File),
+    open(File, read, Str),
+    read_string(Str, "", "\r", _, X), !,
+    split_string(X, "\n", "", Lst),
+    linesToRecords(Lst, Records),
+    sort(Records, SortRecords),
+    difficultFileAndTitle(DifficultS, TitleS),
+    string_concat("  ", TitleS, Title),
+    write(Title), nl,
+    write("----------------"), nl,
+    createRank(SortRecords, 1, S),
+    write(S), nl,
+    close(Str).
+
+userRanking(1) :-
+    createFileIfNonExist("SuperEasy.txt"),
+    createFileIfNonExist("Easy.txt"),
+    createFileIfNonExist("Medium.txt"),
+    createFileIfNonExist("Difficult.txt"),
+    generateRanking("SuperEasy"),
+    generateRanking("Easy"),
+    generateRanking("Medium"),
+    generateRanking("Difficult"),
+    main, !.
+
+userRanking(2).
 
 main :-
-    startSingleGame.
-
-createFileIfNonExist :-
-    exists_file("SuperEasy.txt"),
-    exists_file("Easy.txt"),
-    exists_file("Medium.txt"),
-    exists_file("Difficult.txt"), !.
-createFileIfNonExist :-
-    not(exists_file("SuperEasy.txt")),
-    open("SuperEasy.txt",write,OS),
-    X = "",
-    write(OS,X).
-createFileIfNonExist :-
-    not(exists_file("Easy.txt")),
-    open("Easy.txt",write,OS),
-    X = "",
-    write(OS,X).
-createFileIfNonExist :-
-    not(exists_file("Medium.txt")),
-    open("Medium.txt",write,OS),
-    X = "",
-    write(OS,X).
-createFileIfNonExist :-
-    not(exists_file("Difficult.txt")),
-    open("Difficult.txt",write,OS),
-    X = "",
-    write(OS,X).
+    write("1. Check Ranking 2. Play Game (q to Quit)"), nl,
+    getValidInput(X, 1, 2),
+    userRanking(X),
+    startSingleGame ,!.
