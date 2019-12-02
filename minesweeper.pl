@@ -366,6 +366,8 @@ startSingleGame :-
 
 singleGame(Board, Difficult) :-
     updateGridNum(Board, Board, NBoard),
+    \+ printWinGame(NBoard, Difficult),
+    \+ printLoseGame(NBoard, Difficult),
     printBoard(NBoard, show),           % show means show mines, hide will hide mines
     sizeDifficulty(W, L, Difficult),
     NW is W - 1, NL is L - 1,
@@ -416,6 +418,48 @@ createRank([(Time, Name)|T], N, RankS) :-
 
 difficultFileAndTitle("SuperEasy", "Super Easy").
 difficultFileAndTitle(X, X).
+
+checkWinGame([], _, _, _, _).
+checkWinGame([H|T], C, Row, Column):-
+    C < Row, 
+    checkWinRow(H, 0, Column),
+    NC is C + 1,
+    checkWinGame(T, NC, Row, Column).
+
+checkWinRow([], _, _).
+checkWinRow([H|T], C, Column):-
+    C < Column,
+    \+ reachedMine(H),
+    NC is C + 1,
+    checkWinRow(T, NC, Column).
+
+% checkLoseGame([], _, _, _).
+checkLoseGame([H|T], C, Row, Column):-
+    C < Row, 
+    NC is C + 1,
+    (checkLoseRow(H, 0, Column);
+    checkLoseGame(T, NC, Row, Column)).
+
+% checkLoseRow([], _, _).
+checkLoseRow([H|T], C, Column):-
+    C < Column,
+    NC is C + 1,
+    (reachedMine(H); checkLoseRow(T, NC, Column)).
+
+reachedMine(Grid):-
+    property(reached, Grid),
+    property(mined, Grid).
+
+printWinGame(Board, Difficult):-
+    sizeDifficulty(R, C, Difficult),
+    checkWinGame(Board, 0, R, C),
+    write("You Win!!!"), nl.
+
+printLoseGame(Board, Difficult):-
+    sizeDifficulty(R, C, Difficult),
+    checkLoseGame(Board, 0, R, C),
+    write("You Lose..."), nl.
+    
 
 generateRanking(DifficultS) :-
     string_concat(DifficultS, ".txt", File),
