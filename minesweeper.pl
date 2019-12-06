@@ -332,6 +332,16 @@ updateGridNum([H|T], Board, NBoard) :-
     updateGridNum(T, Board, NRows),
     append([NRow], NRows, NBoard).
 
+winRowCheck([]).
+winRowCheck([H|T]) :-
+    property(mined, H), not(property(reached, H)), winRowCheck(T), !.
+winRowCheck([H|T]) :-
+    not(property(mined, H)), property(reached, H), winRowCheck(T).
+
+winBoardCheck([]).
+winBoardCheck([H|T]) :-
+    winRowCheck(H), winBoardCheck(T).
+
 % TODO: DELETE!!!!!
 testPrintBoard :-
     buildBoard(0, 0, 4, 4, [(0,0), (1,1)], Grids),
@@ -349,12 +359,14 @@ printBoard(Board, O) :-
 
 % getValidInput(X, Lower, Upper): Get an input X from user, and test if it is in [Lower, Upper]
 getValidInput(X, Lower, Upper) :-
-    read(X), integer(X), X >= Lower, X =< Upper, !.
-
+    read(X), inputTest(X, Lower, Upper), !.
 getValidInput(X, Lower, Upper) :-
-    X \= "Q", X \= "q",
     write("Please enter a valid input:\n"),
     getValidInput(X, Lower, Upper).
+
+inputTest(X, Lower, Upper) :-
+    integer(X), X >= Lower, X =< Upper, !.
+inputTest(q, _, _).
 
 sizeDifficulty(5, 5, 0).
 sizeDifficulty(9, 9, 1).
@@ -383,33 +395,40 @@ write("Super Easy: 0.\nEasy:       1.\nMedium:     2.\nDifficult:  3.\nQuit:    
 
 singleGame(Board, Difficult) :-
     updateGridNum(Board, Board, NBoard),
+    checkWinBoard(NBoard, Difficult).
+
+checkWinBoard(NBoard, _) :-
+    winBoardCheck(NBoard),
+    write("You Win!"), !.
+checkWinBoard(NBoard, Difficult) :-
     \+ printWinGame(NBoard, Difficult),
     \+ printLoseGame(NBoard, Difficult),
     printBoard(NBoard, show),           % show means show mines, hide will hide mines
     sizeDifficulty(W, L, Difficult),
     NW is W - 1, NL is L - 1,
     write("Set a flag? 1 yes, 0 no"), nl,
-    read(Input),
-    getFlagInput(X1, Y1, Input, Difficult),
-    flag(X1, Y1, NBoard, NNBoard),
-    printBoard(NNBoard, show),
-    write("Please choose a Row: (Q to quit)"), nl,
-    getValidInput(X, 0, NW),
-    write("Please choose a Column: (Q to quit)"), nl,
-    getValidInput(Y, 0, NL),
-    expand([],[(X,Y)],NNBoard, B),
-    expandClick(B, NNBoard, NNNBoard),
-    singleGame(NNNBoard, Difficult).
+    getValidInput(Input, 0, 1),
+    Input \= "q",
+    dealWithInput(Input, NW, NL, NBoard, Difficult).
 
-getFlagInput(-1, -1, 0, _).
-getFlagInput(X, Y, 1, D):-
+dealWithInput(0, NW, NL, NBoard, Difficult) :-
+    write("Please choose a Row: (Q to quit)"), nl,
+    getValidInput(X, 0, NW), X \= "q",
+    write("Please choose a Column: (Q to quit)"), nl,
+    getValidInput(Y, 0, NL), Y \= "q",
+    expand([],[(X,Y)],NBoard, B),
+    expandClick(B, NBoard, NNBoard),
+    singleGame(NNBoard, Difficult).
+
+dealWithInput(1, NW, NL, NBoard, Difficult) :-
     write("Please choose a Row: "), nl,
-    read(X), 
-    write("Please choose a Column"), nl,
-    read(Y),
-    sizeDifficulty(S1, S2, D),
-    X =< S1,
-    Y =< S2.
+    getValidInput(X1, 0, NW),
+    X1 \= "q",
+    write("Please choose a Column: "), nl,
+    getValidInput(Y1, 0, NL),
+    Y1 \= "q",
+    flag(X1, Y1, NBoard, NNBoard),
+    singleGame(NNBoard, Difficult).
 
 % Create ranking files if there are no such files.
 createFileIfNonExist(FileName) :-
@@ -534,7 +553,8 @@ userRanking(1) :-
 userRanking(2).
 
 main :-
-write("To check score: 1. \nTo play Game:   2. \nTo Quit:        q."), nl,
+    write("To check score: 1. \nTo play Game:   2. \nTo Quit:        q."), nl,
     getValidInput(X, 1, 2),
+    X \= "q",
     userRanking(X),
     startSingleGame ,!.
