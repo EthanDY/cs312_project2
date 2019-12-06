@@ -51,15 +51,15 @@ buildBoard(Row, Col, Wid, Len, Mines, Grids) :-
 % Grid(location, mined, reached, reachedA, reachedB, flagged, flaggedA, flaggedB, num)
 % generateRow([gird], string, hide/show)
 generateRow([], "", _).
+generateRow([grid(_, _, _, _, _, true, _, _, _)|T], S, O) :-
+    generateRow(T, NS, O),
+    string_concat("[F]", NS, S), !.
 generateRow([grid(_, true, _, _, _, _, _, _, _)|T], S, show) :-
     generateRow(T, NS, show),
     string_concat("[X]", NS, S), !.
 generateRow([grid(_, true, _, _, _, _, _, _, _)|T], S, hide) :-
     generateRow(T, NS, hide),
     string_concat("[|]", NS, S), !.
-generateRow([grid(_, _, _, _, _, true, _, _, _)|T], S, O) :-
-    generateRow(T, NS, O),
-    string_concat("[F]", NS, S), !.
 generateRow([grid(_, _, true, true, _, _, _, _, 0)|T], S, O) :-
     generateRow(T, NS, O),
     string_concat("[A]", NS, S), !.
@@ -342,14 +342,26 @@ winBoardCheck([]).
 winBoardCheck([H|T]) :-
     winRowCheck(H), winBoardCheck(T).
 
+case1(Grid) :-
+    property(mined, Grid), not(property(flagged, Grid)).
+case2(Grid) :-
+    not(property(mined, Grid)), property(flagged, Grid).
+
+allMinesOnFlagRow([]).
+allMinesOnFlagRow([H|T]) :-
+    not(case1(H)), not(case2(H)), allMinesOnFlagRow(T).
+
+allMinesOnFlag([]).
+allMinesOnFlag([H|T]) :-
+    allMinesOnFlagRow(H), allMinesOnFlag(T).
+
 % TODO: DELETE!!!!!
-testPrintBoard :-
-    buildBoard(0, 0, 4, 4, [(0,0), (1,1)], Grids),
+testPrintBoard(Board) :-
+    buildBoard(0, 0, 2, 2, [(0,0), (1,1)], Grids),
     updateGridNum(Grids, Grids, Board),
-    printBoard(Board, hide),
-    expand([],[(3,1)],Board, B),
-    expandClick(B, Board, NBoard),
-    printBoard(NBoard, show).
+    printBoard(Board, show),
+    allMinesOnFlag(Board),
+    write("NNN"),nl.
 
 printBoard(Board, O) :-
     generateColumnCoord(Board, 0, ColCords),
@@ -400,9 +412,10 @@ singleGame(Board, Difficult) :-
 checkWinBoard(NBoard, _) :-
     winBoardCheck(NBoard),
     write("You Win!"), !.
+checkWinBoard(NBoard, _) :-
+    allMinesOnFlag(NBoard),
+    write("You Win!"), !.
 checkWinBoard(NBoard, Difficult) :-
-    \+ printWinGame(NBoard, Difficult),
-    \+ printLoseGame(NBoard, Difficult),
     printBoard(NBoard, show),           % show means show mines, hide will hide mines
     sizeDifficulty(W, L, Difficult),
     NW is W - 1, NL is L - 1,
@@ -423,10 +436,10 @@ dealWithInput(0, NW, NL, NBoard, Difficult) :-
 dealWithInput(1, NW, NL, NBoard, Difficult) :-
     write("Please choose a Row: "), nl,
     getValidInput(X1, 0, NW),
-    X1 \= "q",
+    X1 \= q,
     write("Please choose a Column: "), nl,
     getValidInput(Y1, 0, NL),
-    Y1 \= "q",
+    Y1 \= q,
     flag(X1, Y1, NBoard, NNBoard),
     singleGame(NNBoard, Difficult).
 
