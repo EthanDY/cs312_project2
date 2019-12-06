@@ -97,6 +97,23 @@ click(Row, Col, [H|T], Board) :-
     click(NRow, Col, T, Rows),
     append([H], Rows, Board), !.
 
+flagRow(_, [], []).
+flagRow(Col, [grid((Row,Col), A, B, C, D, _, F, G, H)|T], GridRow) :-
+    append([grid((Row,Col), A, B, C, D, true, F, G, H)], T, GridRow), !.
+flagRow(Col, [H|T], GridRow) :-
+    flagRow(Col, T, Grids),
+    append([H], Grids, GridRow), !.
+
+flag(_, _, [], []).
+flag(-1, -1, Board, Board).
+flag(0, Col, [H|T], Board) :-
+    flagRow(Col, H, NRow),
+    append([NRow], T, Board),!.
+flag(Row, Col, [H|T], Board) :-
+    NRow is Row - 1,
+    flag(NRow, Col, T, Rows),
+    append([H], Rows, Board), !.
+
 % Return a list of indexes of grid that doesnt have mines or not flagged above the grid on row column
 expandUp(_, _, [], []).
 expandUp(Row, _, _, []) :-
@@ -355,8 +372,8 @@ startSingleGame :-
     read_string(user_input, "\n", "\r", _, _),
     read_string(user_input, "\n", "\r", _, Name),
     write(Name), nl,
-    write("Please choose difficulty: (Q to quit)"), nl,
-    write("0. Super Easy 1. Easy   2. Medium   3. Difficult"), nl,
+    write("Please choose difficulty:"), nl,
+write("Super Easy: 0.\nEasy:       1.\nMedium:     2.\nDifficult:  3.\nQuit:       q."), nl,
     getValidInput(Difficult, 0, 3),
     sizeDifficulty(W, L, Difficult),
     numMinesDiff(N,Difficult),
@@ -371,13 +388,28 @@ singleGame(Board, Difficult) :-
     printBoard(NBoard, show),           % show means show mines, hide will hide mines
     sizeDifficulty(W, L, Difficult),
     NW is W - 1, NL is L - 1,
+    write("Set a flag? 1 yes, 0 no"), nl,
+    read(Input),
+    getFlagInput(X1, Y1, Input, Difficult),
+    flag(X1, Y1, NBoard, NNBoard),
+    printBoard(NNBoard, show),
     write("Please choose a Row: (Q to quit)"), nl,
     getValidInput(X, 0, NW),
     write("Please choose a Column: (Q to quit)"), nl,
     getValidInput(Y, 0, NL),
-    expand([],[(X,Y)],NBoard, B),
-    expandClick(B, NBoard, NNBoard),
-    singleGame(NNBoard, Difficult).
+    expand([],[(X,Y)],NNBoard, B),
+    expandClick(B, NNBoard, NNNBoard),
+    singleGame(NNNBoard, Difficult).
+
+getFlagInput(-1, -1, 0, _).
+getFlagInput(X, Y, 1, D):-
+    write("Please choose a Row: "), nl,
+    read(X), 
+    write("Please choose a Column"), nl,
+    read(Y),
+    sizeDifficulty(S1, S2, D),
+    X =< S1,
+    Y =< S2.
 
 % Create ranking files if there are no such files.
 createFileIfNonExist(FileName) :-
@@ -502,7 +534,7 @@ userRanking(1) :-
 userRanking(2).
 
 main :-
-    write("1. Check Ranking 2. Play Game (q to Quit)"), nl,
+write("To check score: 1. \nTo play Game:   2. \nTo Quit:        q."), nl,
     getValidInput(X, 1, 2),
     userRanking(X),
     startSingleGame ,!.
