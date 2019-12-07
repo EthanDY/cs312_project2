@@ -2,6 +2,7 @@ firTup((X,_), X).       % First element in the tuple
 secTup((_,X), X).       % Second element in the tuple
 
 % mytake(N_elements, List, New_List)
+mytake(_, [], []).
 mytake(0, _, []).
 mytake(N, [H|T], R) :-
     append([H], R1, R),
@@ -371,14 +372,10 @@ printBoard(Board, O) :-
 
 % getValidInput(X, Lower, Upper): Get an input X from user, and test if it is in [Lower, Upper]
 getValidInput(X, Lower, Upper) :-
-    read(X), inputTest(X, Lower, Upper), !.
+    read(X), integer(X), X >= Lower, X =< Upper, !.
 getValidInput(X, Lower, Upper) :-
     write("Please enter a valid input:\n"),
     getValidInput(X, Lower, Upper).
-
-inputTest(X, Lower, Upper) :-
-    integer(X), X >= Lower, X =< Upper, !.
-inputTest(q, _, _).
 
 sizeDifficulty(5, 5, 0).
 sizeDifficulty(9, 9, 1).
@@ -395,53 +392,102 @@ startSingleGame :-
     write("Please enter your name: (No need to type dot)"), nl,
     read_string(user_input, "\n", "\r", _, _),
     read_string(user_input, "\n", "\r", _, Name),
-    write(Name), nl,
     write("Please choose difficulty:"), nl,
-write("Super Easy: 0.\nEasy:       1.\nMedium:     2.\nDifficult:  3.\nQuit:       q."), nl,
+    write("Super Easy: 0.\nEasy:       1.\nMedium:     2.\nDifficult:  3."), nl,
     getValidInput(Difficult, 0, 3),
     sizeDifficulty(W, L, Difficult),
     numMinesDiff(N,Difficult),
     minesPositions(W, L, N, Positions),
     buildBoard(0, 0, W, L, Positions, Board),
-    singleGame(Board, Difficult).
-
-singleGame(Board, Difficult) :-
     updateGridNum(Board, Board, NBoard),
-    checkWinBoard(NBoard, Difficult).
+    get_time(StartTime),
+    singleGame(NBoard, Difficult, Name, StartTime), !.
 
-checkWinBoard(NBoard, _) :-
-    winBoardCheck(NBoard),
-    write("You Win!"), !.
-checkWinBoard(NBoard, _) :-
-    allMinesOnFlag(NBoard),
-    write("You Win!"), !.
-checkWinBoard(NBoard, Difficult) :-
-    printBoard(NBoard, show),           % show means show mines, hide will hide mines
+singleGame(Board, Difficult, Name, StartTime) :-
+    winGame(Board),
+    write("You Win!!!"), nl, 
+    printBoard(Board, show),           % show means show mines, hide will hide mines
+    writeRecords(Name, Difficult, StartTime), 
+    write("Continue? 0. Yes     1. No"), nl,
+    getValidInput(Input, 0, 1),
+    continueGame(Input), !.
+
+singleGame(Board, Difficult, _, _) :-
     sizeDifficulty(W, L, Difficult),
+    checkLoseGame(Board, 0, W, L),
+    printLoseGame(Board, Difficult),
+    printBoard(Board, show),    
+    write("Continue? 0. Yes     1. No"), nl,
+    getValidInput(Input, 0, 1),
+    continueGame(Input), !.
+singleGame(Board, Difficult, Name, StartTime) :-
+    sizeDifficulty(W, L, Difficult),
+    printBoard(Board, show),           % show means show mines, hide will hide mines
     NW is W - 1, NL is L - 1,
     write("Set a flag? 1 yes, 0 no"), nl,
     getValidInput(Input, 0, 1),
-    Input \= "q",
-    dealWithInput(Input, NW, NL, NBoard, Difficult).
+    dealWithInput(Input, NW, NL, Board, Difficult, Name, StartTime), !.
 
-dealWithInput(0, NW, NL, NBoard, Difficult) :-
-    write("Please choose a Row: (Q to quit)"), nl,
-    getValidInput(X, 0, NW), X \= "q",
-    write("Please choose a Column: (Q to quit)"), nl,
-    getValidInput(Y, 0, NL), Y \= "q",
+continueGame(0) :- main.
+continueGame(1).
+
+winGame(Board) :-
+    winBoardCheck(Board), !.
+winGame(Board) :-
+    allMinesOnFlag(Board), !.
+
+
+diffFile(0, "SuperEasy.txt").
+diffFile(1, "Easy.txt").
+diffFile(2, "Medium.txt").
+diffFile(3, "Difficult.txt").
+
+writeRecords(Name, Difficult, StartTime) :-
+    get_time(EndTime),
+    DiffTime is EndTime - StartTime,
+    format(atom(TS), '~2f', DiffTime),
+    write("Your clear time: "),
+    write(TS), write('s'), nl,
+    diffFile(Difficult, File),
+    open(File, read, Str),
+    read_string(Str, "", "\r", _, X), !,
+    split_string(X, "\n", "", Lst),
+    linesToRecords(Lst, Records),
+    atom_number(TS, TN),
+    append([(TN, Name)], Records, NRecords),
+    sort(NRecords, SNRecords),
+    mytake(5, SNRecords, NNRecords),
+    close(Str),
+    open(File, write, OS),
+    recordsToLines(NNRecords, Lines),
+    write(OS, Lines),
+    close(OS).
+
+recordsToLines([], "").
+recordsToLines([(Time, Name)|T], Str) :-
+    number_string(Time, TimeS),
+    string_concat(Name, " ", S),
+    string_concat(S, TimeS, SS),
+    string_concat(SS, "\n", SSS),
+    recordsToLines(T, SSSS),
+    string_concat(SSS, SSSS, Str).
+
+dealWithInput(0, NW, NL, NBoard, Difficult, Name, StartTime) :-
+    write("Please choose a Row: "), nl,
+    getValidInput(X, 0, NW),
+    write("Please choose a Column: "), nl,
+    getValidInput(Y, 0, NL),
     expand([],[(X,Y)],NBoard, B),
     expandClick(B, NBoard, NNBoard),
-    singleGame(NNBoard, Difficult).
+    singleGame(NNBoard, Difficult, Name, StartTime), !.
 
-dealWithInput(1, NW, NL, NBoard, Difficult) :-
+dealWithInput(1, NW, NL, NBoard, Difficult, Name, StartTime) :-
     write("Please choose a Row: "), nl,
     getValidInput(X1, 0, NW),
-    X1 \= q,
     write("Please choose a Column: "), nl,
     getValidInput(Y1, 0, NL),
-    Y1 \= q,
     flag(X1, Y1, NBoard, NNBoard),
-    singleGame(NNBoard, Difficult).
+    singleGame(NNBoard, Difficult, Name, StartTime), !.
 
 % Create ranking files if there are no such files.
 createFileIfNonExist(FileName) :-
@@ -454,6 +500,11 @@ createFileIfNonExist(FileName) :-
     exists_file(FileName).
 
 linesToRecords([], []).
+linesToRecords([H|T], Records) :-
+    split_string(H, " ","", Lst),
+    not(dif(Lst, [""])),
+    append([], NRecords, Records),
+    linesToRecords(T, NRecords), !.
 linesToRecords([H|T], Records) :-
     split_string(H, " ","", Lst),
     nth0(0, Lst, E1),
@@ -483,64 +534,45 @@ createRank([(Time, Name)|T], N, RankS) :-
 difficultFileAndTitle("SuperEasy", "Super Easy").
 difficultFileAndTitle(X, X).
 
-checkWinGame([], _, _, _, _).
-checkWinGame([H|T], C, Row, Column):-
-    C < Row, 
-    checkWinRow(H, 0, Column),
-    NC is C + 1,
-    checkWinGame(T, NC, Row, Column).
-
-checkWinRow([], _, _).
-checkWinRow([H|T], C, Column):-
-    C < Column,
-    \+ reachedMine(H),
-    NC is C + 1,
-    checkWinRow(T, NC, Column).
-
 % checkLoseGame([], _, _, _).
 checkLoseGame([H|T], C, Row, Column):-
     C < Row, 
     NC is C + 1,
     (checkLoseRow(H, 0, Column);
-    checkLoseGame(T, NC, Row, Column)).
+    checkLoseGame(T, NC, Row, Column)), !.
 
 % checkLoseRow([], _, _).
 checkLoseRow([H|T], C, Column):-
     C < Column,
     NC is C + 1,
-    (reachedMine(H); checkLoseRow(T, NC, Column)).
+    (reachedMine(H); checkLoseRow(T, NC, Column)), !.
 
 reachedMine(Grid):-
     property(reached, Grid),
     property(mined, Grid).
 
-printWinGame(Board, Difficult):-
-    sizeDifficulty(R, C, Difficult),
-    checkWinGame(Board, 0, R, C),
-    write("You Win!!!"), nl.
-
 printLoseGame(Board, Difficult):-
     sizeDifficulty(R, C, Difficult),
     checkLoseGame(Board, 0, R, C),
-    write("You Lose..."), nl.
+    write("You Lose..."), nl, !.
     
 
 generateRanking(DifficultS) :-
     string_concat(DifficultS, ".txt", File),
     open(File, read, Str),
-    read_string(Str, "", "\r", _, X), !,
-    X = "",
+    read_string(Str, "", "\r", _, X),
+    rankingString(DifficultS, X),
+    close(Str), !.
+
+rankingString(DifficultS, "") :-
     difficultFileAndTitle(DifficultS, TitleS),
     string_concat("  ", TitleS, Title),
     write(Title), nl,
     write("----------------"), nl,
-    write(""), nl,
-    close(Str), !.
+    write(""), nl, !.
 
-generateRanking(DifficultS) :-
-    string_concat(DifficultS, ".txt", File),
-    open(File, read, Str),
-    read_string(Str, "", "\r", _, X), !,
+rankingString(DifficultS, X) :-
+    dif(X, ""),
     split_string(X, "\n", "", Lst),
     linesToRecords(Lst, Records),
     sort(Records, SortRecords),
@@ -549,25 +581,23 @@ generateRanking(DifficultS) :-
     write(Title), nl,
     write("----------------"), nl,
     createRank(SortRecords, 1, S),
-    write(S), nl,
-    close(Str).
+    write(S), nl, !.
 
 userRanking(1) :-
-    createFileIfNonExist("SuperEasy.txt"),
-    createFileIfNonExist("Easy.txt"),
-    createFileIfNonExist("Medium.txt"),
-    createFileIfNonExist("Difficult.txt"),
     generateRanking("SuperEasy"),
     generateRanking("Easy"),
     generateRanking("Medium"),
     generateRanking("Difficult"),
     main, !.
 
-userRanking(2).
+userRanking(2) :- startSingleGame, !.
 
 main :-
-    write("To check score: 1. \nTo play Game:   2. \nTo Quit:        q."), nl,
-    getValidInput(X, 1, 2),
-    X \= "q",
-    userRanking(X),
-    startSingleGame ,!.
+    write("To check score: 1. \nTo play Game:   2. \nTo Quit:       3."), nl,
+    getValidInput(X, 1, 3),
+    X \= 3,
+    createFileIfNonExist("SuperEasy.txt"),
+    createFileIfNonExist("Easy.txt"),
+    createFileIfNonExist("Medium.txt"),
+    createFileIfNonExist("Difficult.txt"),
+    userRanking(X), !.
