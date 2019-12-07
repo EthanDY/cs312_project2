@@ -408,7 +408,7 @@ winGame(Board),
 write("You Win!!!"), nl,
 printBoard(Board, show),           % show means show mines, hide will hide mines
 writeRecords(Name, Difficult, StartTime),
-write("Continue? 0. Yes     1. No"), nl,
+write("Do you wish to continue?\nYes:     0.  \nNo:      1."), nl,
 getValidInput(Input, 0, 1),
 continueGame(Input), !.
 
@@ -417,14 +417,14 @@ sizeDifficulty(W, L, Difficult),
 checkLoseGame(Board, 0, W, L),
 printLoseGame(Board, Difficult),
 printBoard(Board, show),
-write("Continue? 0. Yes     1. No"), nl,
+write("Do you wish to continue?\nYes:     0.  \nNo:      1."), nl,
 getValidInput(Input, 0, 1),
 continueGame(Input), !.
 singleGame(Board, Difficult, Name, StartTime) :-
 sizeDifficulty(W, L, Difficult),
 printBoard(Board, show),           % show means show mines, hide will hide mines
 NW is W - 1, NL is L - 1,
-write("Set a flag? 1 yes, 0 no"), nl,
+write("Do you wish to set a flag?\nNo:     0.  \nYes:    1."), nl,
 getValidInput(Input, 0, 1),
 dealWithInput(Input, NW, NL, Board, Difficult, Name, StartTime), !.
 
@@ -473,18 +473,18 @@ recordsToLines(T, SSSS),
 string_concat(SSS, SSSS, Str).
 
 dealWithInput(0, NW, NL, NBoard, Difficult, Name, StartTime) :-
-write("Please choose a Row: "), nl,
+write("Please input a Row: "), nl,
 getValidInput(X, 0, NW),
-write("Please choose a Column: "), nl,
+write("Please input a Column: "), nl,
 getValidInput(Y, 0, NL),
 expand([],[(X,Y)],NBoard, B),
 expandClick(B, NBoard, NNBoard),
 singleGame(NNBoard, Difficult, Name, StartTime), !.
 
 dealWithInput(1, NW, NL, NBoard, Difficult, Name, StartTime) :-
-write("Please choose a Row: "), nl,
+write("Please input a Row: "), nl,
 getValidInput(X1, 0, NW),
-write("Please choose a Column: "), nl,
+write("Please input a Column: "), nl,
 getValidInput(Y1, 0, NL),
 flag(X1, Y1, NBoard, NNBoard),
 singleGame(NNBoard, Difficult, Name, StartTime), !.
@@ -606,4 +606,5 @@ start :-
 statistics(walltime, [TimeSinceStart | [TimeSinceLastCall]]),
 main,
 statistics(walltime, [NewTimeSinceStart | [ExecutionTime]]),
-write('This game took '), write(ExecutionTime), write(' milisseconds.').
+X is ExecutionTime * 0.001,
+write('You spent '), write(X), write(' seconds on minesweeper.').
